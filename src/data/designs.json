@@ -1,50 +1,8 @@
 [
-  {
-    "id": "design-1",
-    "name": "Design 1 – Weathered",
-    "imagePath": "/designs/placeholder.svg",
-    "notes": "Weathered vintage style",
-    "priceId": null,
-    "priceCents": 2500
-  },
-  {
-    "id": "design-2",
-    "name": "Design 2",
-    "imagePath": "/designs/placeholder.svg",
-    "notes": "",
-    "priceId": null,
-    "priceCents": 2500
-  },
-  {
-    "id": "design-3",
-    "name": "Design 3",
-    "imagePath": "/designs/placeholder.svg",
-    "notes": "",
-    "priceId": null,
-    "priceCents": 2500
-  },
-  {
-    "id": "design-4",
-    "name": "Design 4",
-    "imagePath": "/designs/placeholder.svg",
-    "notes": "",
-    "priceId": null,
-    "priceCents": 2500
-  },
-  {
-    "id": "design-5",
-    "name": "Design 5",
-    "imagePath": "/designs/placeholder.svg",
-    "notes": "",
-    "priceId": null,
-    "priceCents": 2500
-  },
-  {
-    "id": "design-6",
-    "name": "Design 6",
-    "imagePath": "/designs/placeholder.svg",
-    "notes": "",
-    "priceId": null,
-    "priceCents": 2500
-  }
+  {"id":"design-1","name":"White with pink lettering","imagePath":"/designs/placeholder.svg","notes":"","priceId":null,"priceCents":2500},
+  {"id":"design-2","name":"White with gold lettering","imagePath":"/designs/placeholder.svg","notes":"","priceId":null,"priceCents":2500},
+  {"id":"design-3","name":"Black with pink lettering","imagePath":"/designs/placeholder.svg","notes":"","priceId":null,"priceCents":2500},
+  {"id":"design-4","name":"Black with gold lettering","imagePath":"/designs/placeholder.svg","notes":"","priceId":null,"priceCents":2500},
+  {"id":"design-5","name":"Black weathered with pink lettering","imagePath":"/designs/placeholder.svg","notes":"","priceId":null,"priceCents":2500},
+  {"id":"design-6","name":"Black weathered with gold lettering","imagePath":"/designs/placeholder.svg","notes":"","priceId":null,"priceCents":2500}
 ]
