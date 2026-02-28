@@ -1,0 +1,9 @@
+onlyBuiltDependencies:
+  - a
+  - b
+  - e
+  - netlify-cli
+  - p
+  - s
+  - u
+  - unix-dgram
