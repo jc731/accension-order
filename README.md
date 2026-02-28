@@ -1,6 +1,6 @@
 # Ascension Convention 2026 – Shirt Order Form
 
-Astro 5 SSR order form for Ascension Convention 2026 shirts. Features Stripe checkout, PostgreSQL (Drizzle), Resend emails, and admin order management.
+Astro 5 SSR order form for Ascension Convention 2026 shirts. Features Stripe checkout, PostgreSQL (Drizzle), Resend emails, admin order management, and a design picker with zoomable shirt images.
 
 ## Stack
 
@@ -70,6 +70,24 @@ See `.env.example` for all required variables:
 
 Configure environment variables in your platform’s dashboard.
 
+## Order Form & Designs
+
+The order form (`/`) lets customers choose from six shirt designs:
+
+| Design | Name |
+|--------|------|
+| 1 | White with pink lettering |
+| 2 | White with gold lettering |
+| 3 | Black with pink lettering |
+| 4 | Black with gold lettering |
+| 5 | Black weathered with pink lettering |
+| 6 | Black weathered with gold lettering |
+
+- **Design images** live in `src/images/` (shirt-1.jpg through shirt-6.png) and are imported at build time.
+- **Image zoom modal**: Click any design thumbnail to view it larger. Closable via X button, Escape key, or clicking outside the image.
+- **Thumbnails** use a 4:3 aspect ratio with `object-fit: contain` so composite front/back views display fully.
+- Design metadata (names, pricing) is in `src/data/designs.json`.
+
 ## MCP Servers (Cursor)
 
 This project is set up to use these MCP servers for development:
@@ -84,13 +102,14 @@ Ensure these are enabled in Cursor settings (global `mcp.json` or project `.curs
 ```
 src/
 ├── pages/           # Astro pages
-│   ├── index.astro  # Order form
+│   ├── index.astro  # Order form (design picker, zoom modal, checkout)
 │   ├── success.astro
 │   ├── admin.astro
 │   └── api/         # API routes (checkout, webhooks, admin)
 ├── layouts/         # BaseLayout.astro
 ├── lib/             # Stripe, email, DB, pricing
-├── data/            # designs.json
+├── data/            # designs.json (design names, pricing)
+├── images/          # Shirt design images (shirt-1.jpg … shirt-6.png)
 └── styles/          # Global styles
 ```
 
