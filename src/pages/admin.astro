@@ -1,0 +1,236 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+export const prerender = false;
+---
+<BaseLayout title="Admin Orders" description="Admin dashboard for Ascension Convention 2026 shirt orders.">
+  <main class="page">
+    <header class="header">
+      <h1>Order Admin</h1>
+      <p class="subtitle">Ascension Convention 2026 Shirt Orders</p>
+    </header>
+
+    <div class="auth-box">
+      <form id="auth-form">
+        <label for="password">Admin Password</label>
+        <input type="password" id="password" name="password" placeholder="Enter password" />
+        <button type="submit" class="btn">Login</button>
+      </form>
+    </div>
+
+    <div id="content" class="content" hidden>
+      <div class="actions">
+        <a id="export-csv" href="#" class="btn btn-primary">Export CSV</a>
+      </div>
+      <div id="orders-list" class="orders-list">
+        <p>Loading orders…</p>
+      </div>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .header {
+    margin-bottom: 2rem;
+  }
+  .header h1 {
+    font-size: 1.5rem;
+  }
+  .subtitle {
+    color: var(--color-text-muted);
+    margin: 0.25rem 0 0;
+  }
+
+  .auth-box {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .auth-box label {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  .auth-box input {
+    width: 100%;
+    max-width: 300px;
+    padding: 0.75rem;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg);
+    color: var(--color-text);
+  }
+  .auth-box button {
+    padding: 0.75rem 1.25rem;
+    background: var(--color-accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .content[hidden] {
+    display: none;
+  }
+
+  .actions {
+    margin-bottom: 1.5rem;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .btn-primary {
+    background: var(--color-accent);
+    color: white;
+  }
+  .btn-primary:hover {
+    background: var(--color-accent-hover);
+  }
+
+  .orders-list {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+  }
+  th {
+    background: var(--color-bg);
+    font-weight: 600;
+  }
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+  }
+  .badge-paid {
+    background: rgba(34, 197, 94, 0.2);
+    color: var(--color-success);
+  }
+  .badge-pending {
+    background: rgba(234, 179, 8, 0.2);
+    color: #eab308;
+  }
+</style>
+
+<script>
+  const authForm = document.getElementById('auth-form') as HTMLFormElement;
+  const passwordInput = document.getElementById('password') as HTMLInputElement;
+  const content = document.getElementById('content') as HTMLDivElement;
+  const ordersList = document.getElementById('orders-list') as HTMLDivElement;
+  const exportLink = document.getElementById('export-csv') as HTMLAnchorElement;
+
+  let authToken = '';
+
+  function b64(str: string): string {
+    if (typeof btoa !== 'undefined') return btoa(str);
+    return Buffer.from(str, 'utf-8').toString('base64');
+  }
+
+  authForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const password = passwordInput.value;
+    authToken = b64(`admin:${password}`);
+    content.hidden = false;
+    loadOrders();
+  });
+
+  async function loadOrders() {
+    const res = await fetch('/api/admin/orders.json', {
+      headers: { Authorization: `Basic ${authToken}` },
+    });
+    if (!res.ok) {
+      ordersList.innerHTML = '<p>Failed to load orders. Check password.</p>';
+      return;
+    }
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      ordersList.innerHTML = '<p>No orders yet.</p>';
+      return;
+    }
+    ordersList.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Date</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Design</th>
+            <th>Size</th>
+            <th>Amount</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data
+            .map(
+              (o: { id: string; createdAt: string; fullName: string; email: string; designName: string; size: string; amountPaidCents: number; paymentStatus: string }) =>
+                `<tr>
+              <td><code>${o.id}</code></td>
+              <td>${new Date(o.createdAt).toLocaleDateString()}</td>
+              <td>${o.fullName}</td>
+              <td>${o.email}</td>
+              <td>${o.designName}</td>
+              <td>${o.size}</td>
+              <td>$${(o.amountPaidCents / 100).toFixed(2)}</td>
+              <td><span class="badge badge-${o.paymentStatus === 'paid' ? 'paid' : 'pending'}">${o.paymentStatus}</span></td>
+            </tr>`
+            )
+            .join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  exportLink.addEventListener('click', async (e) => {
+    e.preventDefault();
+    if (!authToken) return;
+    const res = await fetch('/api/admin/export-csv', {
+      headers: { Authorization: `Basic ${authToken}` },
+    });
+    if (!res.ok) {
+      alert('Export failed. Check password.');
+      return;
+    }
+    const csv = await res.text();
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ascension-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+</script>

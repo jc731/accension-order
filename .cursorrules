@@ -1,0 +1,5 @@
+# Accension Order Form – Cursor Rules
+
+- **Package manager**: Use `pnpm` for all install/add/run commands.
+- **MCP**: Prefer org-controller for org workflows and planning; use Astro Docs MCP (`search_astro_docs`) for Astro-related questions.
+- **Stack**: Astro 5 SSR, Netlify default, Drizzle ORM, Stripe, Resend.

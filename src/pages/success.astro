@@ -1,0 +1,84 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const sessionId = Astro.url.searchParams.get('session_id');
+---
+<BaseLayout title="Order Confirmed" description="Your Ascension Convention 2026 shirt order has been confirmed.">
+  <main class="page">
+    <div class="card">
+      <div class="icon" aria-hidden="true">✓</div>
+      <h1>Order Confirmed!</h1>
+      <p>Thank you for your order. You will receive a confirmation email shortly.</p>
+      {sessionId ? (
+        <p class="order-id">Reference: <code>{sessionId.slice(0, 20)}…</code></p>
+      ) : null}
+      <a href="/" class="btn">Place Another Order</a>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .page {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  .card {
+    text-align: center;
+    max-width: 420px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 2.5rem;
+    box-shadow: var(--shadow);
+  }
+
+  .icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1.5rem;
+    background: var(--color-success);
+    color: white;
+    font-size: 2rem;
+    font-weight: bold;
+    line-height: 64px;
+    border-radius: 50%;
+  }
+
+  .card h1 {
+    margin: 0 0 0.75rem;
+    font-size: 1.5rem;
+  }
+
+  .card p {
+    color: var(--color-text-muted);
+    margin: 0 0 1rem;
+  }
+
+  .order-id {
+    font-size: 0.875rem;
+  }
+  .order-id code {
+    background: var(--color-bg);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+  }
+
+  .btn {
+    display: inline-block;
+    margin-top: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--color-accent);
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .btn:hover {
+    background: var(--color-accent-hover);
+    text-decoration: none;
+  }
+</style>

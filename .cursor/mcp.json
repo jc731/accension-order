@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "org-controller": {
+      "command": "pnpm",
+      "args": [
+        "dlx",
+        "mcp-remote",
+        "https://mcp.joncagle.com/mcp",
+        "--header",
+        "CF-Access-Client-Id: ${CF_ACCESS_CLIENT_ID}",
+        "--header",
+        "CF-Access-Client-Secret: ${CF_ACCESS_CLIENT_SECRET}"
+      ],
+      "env": {
+        "CF_ACCESS_CLIENT_ID": "e8fd326b42969b7daa6e0662daa0716e.access",
+        "CF_ACCESS_CLIENT_SECRET": "c4c936cc5d350a6e9c1449ce640f425532c406cc6de8344156114b862e79c71a"
+      }
+    },
+    "Astro Docs": {
+      "type": "http",
+      "url": "https://mcp.docs.astro.build/mcp"
+    }
+  }
+}

@@ -1,0 +1,481 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import designsData from '../data/designs.json';
+
+const designs = designsData as { id: string; name: string; imagePath: string; notes?: string }[];
+const ORDERING_AS = ['Youth', 'Leader', 'Parent'] as const;
+const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] as const;
+---
+<BaseLayout title="Shirt Order">
+  <main class="page">
+    <header class="header">
+      <h1>Ascension Convention 2026</h1>
+      <p class="subtitle">Shirt Order Form</p>
+    </header>
+
+    <form id="order-form" class="form" novalidate>
+      <section class="section" aria-labelledby="contact-heading">
+        <h2 id="contact-heading">Contact Info</h2>
+        <div class="field">
+          <label for="fullName">Full Name <span class="required">*</span></label>
+          <input
+            type="text"
+            id="fullName"
+            name="fullName"
+            required
+            minlength="2"
+            autocomplete="name"
+            placeholder="Your full name"
+          />
+          <span class="error" data-for="fullName" hidden></span>
+        </div>
+        <div class="field">
+          <span class="label">Ordering As <span class="required">*</span></span>
+          <div class="radio-group" role="radiogroup" aria-label="Ordering as">
+            {ORDERING_AS.map((opt) => (
+              <label class="radio-label">
+                <input type="radio" name="orderingAs" value={opt} required />
+                <span>{opt}</span>
+              </label>
+            ))}
+          </div>
+          <span class="error" data-for="orderingAs" hidden></span>
+        </div>
+        <div class="field">
+          <label for="email">Parent/Contact Email <span class="required">*</span></label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            required
+            autocomplete="email"
+            placeholder="email@example.com"
+          />
+          <span class="error" data-for="email" hidden></span>
+        </div>
+        <div class="field">
+          <label for="phone">Phone Number <span class="required">*</span></label>
+          <input
+            type="tel"
+            id="phone"
+            name="phone"
+            required
+            minlength="7"
+            autocomplete="tel"
+            placeholder="(555) 123-4567"
+          />
+          <span class="error" data-for="phone" hidden></span>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="design-heading">
+        <h2 id="design-heading">Shirt Design <span class="required">*</span></h2>
+        <p class="hint">Select exactly one design.</p>
+        <div class="design-grid" role="radiogroup" aria-label="Shirt design">
+          {designs.map((d) => (
+            <label class="design-card">
+              <input type="radio" name="designId" value={d.id} required />
+              <div class="design-inner">
+                <div class="design-image">
+                  <img src={d.imagePath} alt={d.name} width="120" height="120" />
+                </div>
+                <span class="design-name">{d.name}</span>
+              </div>
+            </label>
+          ))}
+        </div>
+        <span class="error" data-for="designId" hidden></span>
+      </section>
+
+      <section class="section" aria-labelledby="size-heading">
+        <h2 id="size-heading">Size <span class="required">*</span></h2>
+        <div class="radio-group size-group" role="radiogroup" aria-label="Shirt size">
+          {SIZES.map((s) => (
+            <label class="radio-label size-option">
+              <input type="radio" name="size" value={s} required />
+              <span>{s}</span>
+            </label>
+          ))}
+        </div>
+        <p class="hint">2XL and 3XL add $2.00.</p>
+        <span class="error" data-for="size" hidden></span>
+      </section>
+
+      <section class="section review-section">
+        <h2>Review & Pay</h2>
+        <div id="review-summary" class="review-summary" hidden>
+          <p><strong>Order summary will appear here.</strong></p>
+        </div>
+        <div class="submit-row">
+          <button type="submit" id="submit-btn" class="btn btn-primary" disabled>
+            Proceed to Payment
+          </button>
+        </div>
+      </section>
+    </form>
+
+    <p class="footer-note">Secure checkout powered by Stripe.</p>
+  </main>
+</BaseLayout>
+
+<style>
+  .page {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .header h1 {
+    font-size: 1.75rem;
+    margin: 0;
+  }
+
+  .subtitle {
+    color: var(--color-text-muted);
+    margin: 0.25rem 0 0;
+  }
+
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .section {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+  }
+
+  .section h2 {
+    font-size: 1.2rem;
+    margin: 0 0 1rem;
+  }
+
+  .required {
+    color: var(--color-error);
+  }
+
+  .field {
+    margin-bottom: 1rem;
+  }
+  .field:last-child {
+    margin-bottom: 0;
+  }
+
+  .label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+
+  label[for] {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+
+  input[type='text'],
+  input[type='email'],
+  input[type='tel'] {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg);
+    color: var(--color-text);
+  }
+  input:focus {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  input:invalid:not(:placeholder-shown) {
+    border-color: var(--color-error);
+  }
+
+  .radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .radio-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg);
+  }
+  .radio-label:has(input:checked) {
+    border-color: var(--color-accent);
+    background: rgba(124, 92, 255, 0.15);
+  }
+  .radio-label input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-accent);
+  }
+
+  .design-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem;
+  }
+
+  .design-card {
+    cursor: pointer;
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .design-card:hover {
+    border-color: var(--color-accent);
+  }
+  .design-card:has(input:checked) {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px rgba(124, 92, 255, 0.3);
+  }
+  .design-card input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .design-inner {
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .design-image {
+    width: 100%;
+    aspect-ratio: 1;
+    background: var(--color-bg);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+  }
+  .design-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .design-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .size-group {
+    margin-bottom: 0.5rem;
+  }
+
+  .hint {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin: 0.5rem 0 0;
+  }
+
+  .error {
+    display: block;
+    color: var(--color-error);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+  }
+  .error[hidden] {
+    display: none;
+  }
+
+  .review-summary {
+    background: var(--color-bg);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .submit-row {
+    display: flex;
+    justify-content: center;
+  }
+
+  .btn {
+    padding: 0.875rem 2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+  }
+
+  .btn-primary {
+    background: var(--color-accent);
+    color: white;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--color-accent-hover);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .footer-note {
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin-top: 2rem;
+  }
+
+  @media (max-width: 480px) {
+    .page {
+      padding: 1rem;
+    }
+    .design-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>
+
+<script>
+  const form = document.getElementById('order-form') as HTMLFormElement;
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+  const reviewSummary = document.getElementById('review-summary') as HTMLDivElement;
+
+  const BASE = 25;
+  const XXL_EXTRA = 2;
+  const XXL_SIZES = ['2XL', '3XL'];
+
+  function getPrice(size: string): number {
+    return XXL_SIZES.includes(size) ? BASE + XXL_EXTRA : BASE;
+  }
+
+  function showError(field: string, msg: string) {
+    const el = document.querySelector(`[data-for="${field}"]`);
+    if (el) {
+      (el as HTMLElement).textContent = msg;
+      (el as HTMLElement).hidden = false;
+    }
+  }
+
+  function clearErrors() {
+    document.querySelectorAll('.error').forEach((e) => {
+      (e as HTMLElement).hidden = true;
+      (e as HTMLElement).textContent = '';
+    });
+  }
+
+  function validate(): boolean {
+    clearErrors();
+    let valid = true;
+    const fullName = (form.fullName as HTMLInputElement).value.trim();
+    const orderingAs = (form.orderingAs as HTMLInputElement).value;
+    const email = (form.email as HTMLInputElement).value.trim();
+    const phone = (form.phone as HTMLInputElement).value.trim();
+    const designId = (form.designId as HTMLInputElement).value;
+    const size = (form.size as HTMLInputElement).value;
+
+    if (!fullName || fullName.length < 2) {
+      showError('fullName', 'Please enter your full name');
+      valid = false;
+    }
+    if (!orderingAs) {
+      showError('orderingAs', 'Please select how you are ordering');
+      valid = false;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showError('email', 'Please enter a valid email');
+      valid = false;
+    }
+    if (!phone || phone.length < 7) {
+      showError('phone', 'Please enter a valid phone number');
+      valid = false;
+    }
+    if (!designId) {
+      showError('designId', 'Please select a shirt design');
+      valid = false;
+    }
+    if (!size) {
+      showError('size', 'Please select a size');
+      valid = false;
+    }
+    return valid;
+  }
+
+  function updateReview() {
+    const designId = (form.designId as HTMLInputElement).value;
+    const size = (form.size as HTMLInputElement).value;
+    const designCard = form.querySelector(`input[name="designId"][value="${designId}"]`);
+    const designName = designCard
+      ? (designCard.closest('.design-card')?.querySelector('.design-name') as HTMLElement)?.textContent || 'Design'
+      : 'Design';
+    const price = getPrice(size);
+    const canShow = designId && size;
+    reviewSummary.hidden = !canShow;
+    submitBtn.disabled = !canShow;
+    if (canShow) {
+      reviewSummary.innerHTML = `
+        <p><strong>${designName}</strong> – Size ${size}</p>
+        <p>Total: $${price.toFixed(2)}</p>
+      `;
+    }
+  }
+
+  form.querySelectorAll('input[name="designId"], input[name="size"]').forEach((inp) => {
+    inp.addEventListener('change', updateReview);
+  });
+  updateReview();
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Processing...';
+
+    try {
+      const formData = {
+        fullName: (form.fullName as HTMLInputElement).value.trim(),
+        orderingAs: (form.orderingAs as HTMLInputElement).value,
+        email: (form.email as HTMLInputElement).value.trim(),
+        phone: (form.phone as HTMLInputElement).value.trim(),
+        designId: (form.designId as HTMLInputElement).value,
+        size: (form.size as HTMLInputElement).value,
+      };
+
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Something went wrong');
+      }
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL received');
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Payment failed';
+      showError('designId', msg);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Proceed to Payment';
+    }
+  });
+</script>
