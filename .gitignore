@@ -25,8 +25,5 @@ Thumbs.db
 npm-debug.log*
 pnpm-debug.log*
 
-# Drizzle
-drizzle/
-
 # Local Netlify folder
 .netlify
