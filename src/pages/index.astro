@@ -8,7 +8,7 @@ import shirt4 from '../images/shirt-4.jpg';
 import shirt5 from '../images/shirt-5.png';
 import shirt6 from '../images/shirt-6.png';
 
-const designs = designsData as { id: string; name: string; imagePath: string; notes?: string }[];
+const designs = designsData as { id: string; name: string; slug: string; imagePath: string; notes?: string }[];
 const designImages: Record<string, { src: string; width?: number; height?: number }> = {
   'design-1': shirt1,
   'design-2': shirt2,
@@ -37,7 +37,7 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] as const;
       novalidate
     >
       <input type="hidden" name="form-name" value="shirt-order" />
-      <input type="hidden" name="designName" id="design-name-field" value="" />
+      <input type="hidden" name="design" id="design-field" value="" />
       <section class="section" aria-labelledby="contact-heading">
         <h2 id="contact-heading">Contact Info</h2>
         <div class="field">
@@ -97,7 +97,7 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] as const;
         <p class="hint">Select exactly one design. Click the image to view larger.</p>
         <div class="design-grid" role="radiogroup" aria-label="Shirt design">
           {designs.map((d) => (
-            <label class="design-card" data-design-id={d.id} data-weathered={d.name.toLowerCase().includes('weathered') ? 'true' : undefined}>
+            <label class="design-card" data-design-id={d.id} data-design-slug={d.slug} data-weathered={d.name.toLowerCase().includes('weathered') ? 'true' : undefined}>
               <input type="radio" name="designId" value={d.id} required />
               <div class="design-inner">
                 <div
@@ -653,15 +653,17 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] as const;
     const designId = (form.designId as HTMLInputElement).value;
     const size = (form.size as HTMLInputElement).value;
     const designCard = form.querySelector(`input[name="designId"][value="${designId}"]`);
-    const designName = designCard
-      ? (designCard.closest('.design-card')?.querySelector('.design-name') as HTMLElement)?.textContent || 'Design'
+    const designCardEl = designCard?.closest('.design-card');
+    const designName = designCardEl
+      ? (designCardEl.querySelector('.design-name') as HTMLElement)?.textContent || 'Design'
       : 'Design';
+    const designSlug = designCardEl?.getAttribute('data-design-slug') || '';
     const price = getPrice(designId, size);
     const canShow = designId && size;
     reviewSummary.hidden = !canShow;
     submitBtn.disabled = !canShow;
-    const designNameField = document.getElementById('design-name-field') as HTMLInputElement;
-    if (designNameField) designNameField.value = designName;
+    const designField = document.getElementById('design-field') as HTMLInputElement;
+    if (designField) designField.value = designSlug;
     if (canShow) {
       reviewSummary.innerHTML = `
         <p><strong>${designName}</strong> – Size ${size}</p>
@@ -685,13 +687,13 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] as const;
     e.preventDefault();
     if (!validate()) return;
 
-    // Ensure designName is set before submit (JS-populated field)
+    // Ensure design (slug) is set before submit (JS-populated field)
     const designId = (form.designId as HTMLInputElement).value;
-    const size = (form.size as HTMLInputElement).value;
     const designCard = form.querySelector<HTMLInputElement>(`input[name="designId"][value="${designId}"]`);
-    const designName = designCard?.closest('.design-card')?.querySelector('.design-name')?.textContent?.trim() || 'Design';
-    const designNameField = document.getElementById('design-name-field') as HTMLInputElement;
-    if (designNameField) designNameField.value = designName;
+    const designCardEl = designCard?.closest('.design-card');
+    const designSlug = designCardEl?.getAttribute('data-design-slug') || '';
+    const designField = document.getElementById('design-field') as HTMLInputElement;
+    if (designField) designField.value = designSlug;
 
     submitBtn.disabled = true;
     submitBtn.textContent = 'Submitting...';
