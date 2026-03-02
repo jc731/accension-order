@@ -31,7 +31,7 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] as const;
       id="order-form"
       name="shirt-order"
       method="POST"
-      action="/success/"
+      action="/"
       data-netlify="true"
       class="form"
       novalidate
@@ -681,12 +681,38 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] as const;
   });
   updateReview();
 
-  form.addEventListener('submit', (e) => {
-    if (!validate()) {
-      e.preventDefault();
-      return;
-    }
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    // Ensure designName is set before submit (JS-populated field)
+    const designId = (form.designId as HTMLInputElement).value;
+    const size = (form.size as HTMLInputElement).value;
+    const designCard = form.querySelector<HTMLInputElement>(`input[name="designId"][value="${designId}"]`);
+    const designName = designCard?.closest('.design-card')?.querySelector('.design-name')?.textContent?.trim() || 'Design';
+    const designNameField = document.getElementById('design-name-field') as HTMLInputElement;
+    if (designNameField) designNameField.value = designName;
+
     submitBtn.disabled = true;
     submitBtn.textContent = 'Submitting...';
+
+    try {
+      const formData = new FormData(form);
+      const response = await fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(Array.from(formData) as [string, string][]).toString(),
+      });
+
+      if (response.ok) {
+        window.location.href = '/success/';
+      } else {
+        throw new Error(`Submit failed: ${response.status}`);
+      }
+    } catch (err) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Order';
+      showError('designId', 'Submission failed. Please try again.');
+    }
   });
 </script>
