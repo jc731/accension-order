@@ -27,7 +27,17 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] as const;
       <p class="subtitle">Shirt Order Form</p>
     </header>
 
-    <form id="order-form" class="form" novalidate>
+    <form
+      id="order-form"
+      name="shirt-order"
+      method="POST"
+      action="/success/"
+      data-netlify="true"
+      class="form"
+      novalidate
+    >
+      <input type="hidden" name="form-name" value="shirt-order" />
+      <input type="hidden" name="designName" id="design-name-field" value="" />
       <section class="section" aria-labelledby="contact-heading">
         <h2 id="contact-heading">Contact Info</h2>
         <div class="field">
@@ -87,7 +97,7 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] as const;
         <p class="hint">Select exactly one design. Click the image to view larger.</p>
         <div class="design-grid" role="radiogroup" aria-label="Shirt design">
           {designs.map((d) => (
-            <label class="design-card">
+            <label class="design-card" data-design-id={d.id} data-weathered={d.name.toLowerCase().includes('weathered') ? 'true' : undefined}>
               <input type="radio" name="designId" value={d.id} required />
               <div class="design-inner">
                 <div
@@ -113,24 +123,24 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] as const;
         <h2 id="size-heading">Size <span class="required">*</span></h2>
         <div class="radio-group size-group" role="radiogroup" aria-label="Shirt size">
           {SIZES.map((s) => (
-            <label class="radio-label size-option">
+            <label class="radio-label size-option" data-size={s}>
               <input type="radio" name="size" value={s} required />
               <span>{s}</span>
             </label>
           ))}
         </div>
-        <p class="hint">2XL and 3XL add $2.00.</p>
+        <p class="hint" id="size-hint">2XL and 3XL add $2.00.</p>
         <span class="error" data-for="size" hidden></span>
       </section>
 
       <section class="section review-section">
-        <h2>Review & Pay</h2>
+        <h2>Review & Submit</h2>
         <div id="review-summary" class="review-summary" hidden>
           <p><strong>Order summary will appear here.</strong></p>
         </div>
         <div class="submit-row">
           <button type="submit" id="submit-btn" class="btn btn-primary" disabled>
-            Proceed to Payment
+            Submit Order
           </button>
         </div>
       </section>
@@ -148,7 +158,6 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] as const;
       </div>
     </div>
 
-    <p class="footer-note">Secure checkout powered by Stripe.</p>
   </main>
 </BaseLayout>
 
@@ -434,6 +443,10 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] as const;
     margin-bottom: 0.5rem;
   }
 
+  .size-option.hidden {
+    display: none;
+  }
+
   .hint {
     font-size: 0.875rem;
     color: var(--color-text-muted);
@@ -480,13 +493,6 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] as const;
   .btn-primary:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-  }
-
-  .footer-note {
-    text-align: center;
-    font-size: 0.875rem;
-    color: var(--color-text-muted);
-    margin-top: 2rem;
   }
 
   @media (max-width: 480px) {
@@ -551,12 +557,44 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] as const;
     if ((e as KeyboardEvent).key === 'Escape' && modal && !modal.hidden) closeModal();
   });
 
-  const BASE = 25;
+  const BASE_WHITE_BLACK = 20;
+  const BASE_WEATHERED = 30;
   const XXL_EXTRA = 2;
   const XXL_SIZES = ['2XL', '3XL'];
+  const WEATHERED_IDS = ['design-5', 'design-6'];
 
-  function getPrice(size: string): number {
-    return XXL_SIZES.includes(size) ? BASE + XXL_EXTRA : BASE;
+  function getBasePrice(designId: string): number {
+    return WEATHERED_IDS.includes(designId) ? BASE_WEATHERED : BASE_WHITE_BLACK;
+  }
+
+  function getPrice(designId: string, size: string): number {
+    const base = getBasePrice(designId);
+    return XXL_SIZES.includes(size) ? base + XXL_EXTRA : base;
+  }
+
+  function updateSizeOptions(designId: string) {
+    const isWeathered = WEATHERED_IDS.includes(designId);
+    const sizeLabels = form.querySelectorAll('.size-option');
+    const sizeHint = document.getElementById('size-hint');
+
+    sizeLabels.forEach((label) => {
+      const size = (label as HTMLElement).dataset.size;
+      const input = label.querySelector('input[name="size"]') as HTMLInputElement;
+      if (size === '3XL') {
+        if (isWeathered) {
+          label.classList.add('hidden');
+          if (input?.checked) input.checked = false;
+        } else {
+          label.classList.remove('hidden');
+        }
+      }
+    });
+
+    if (sizeHint) {
+      sizeHint.textContent = isWeathered ? '2XL adds $2.00.' : '2XL and 3XL add $2.00.';
+    }
+
+    updateReview();
   }
 
   function showError(field: string, msg: string) {
@@ -618,10 +656,12 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] as const;
     const designName = designCard
       ? (designCard.closest('.design-card')?.querySelector('.design-name') as HTMLElement)?.textContent || 'Design'
       : 'Design';
-    const price = getPrice(size);
+    const price = getPrice(designId, size);
     const canShow = designId && size;
     reviewSummary.hidden = !canShow;
     submitBtn.disabled = !canShow;
+    const designNameField = document.getElementById('design-name-field') as HTMLInputElement;
+    if (designNameField) designNameField.value = designName;
     if (canShow) {
       reviewSummary.innerHTML = `
         <p><strong>${designName}</strong> – Size ${size}</p>
@@ -630,50 +670,23 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] as const;
     }
   }
 
-  form.querySelectorAll('input[name="designId"], input[name="size"]').forEach((inp) => {
+  form.querySelectorAll('input[name="designId"]').forEach((inp) => {
+    inp.addEventListener('change', (e) => {
+      const designId = (e.target as HTMLInputElement).value;
+      updateSizeOptions(designId);
+    });
+  });
+  form.querySelectorAll('input[name="size"]').forEach((inp) => {
     inp.addEventListener('change', updateReview);
   });
   updateReview();
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!validate()) return;
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Processing...';
-
-    try {
-      const formData = {
-        fullName: (form.fullName as HTMLInputElement).value.trim(),
-        orderingAs: (form.orderingAs as HTMLInputElement).value,
-        email: (form.email as HTMLInputElement).value.trim(),
-        phone: (form.phone as HTMLInputElement).value.trim(),
-        designId: (form.designId as HTMLInputElement).value,
-        size: (form.size as HTMLInputElement).value,
-      };
-
-      const res = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Something went wrong');
-      }
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('No checkout URL received');
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Payment failed';
-      showError('designId', msg);
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Proceed to Payment';
+  form.addEventListener('submit', (e) => {
+    if (!validate()) {
+      e.preventDefault();
+      return;
     }
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
   });
 </script>

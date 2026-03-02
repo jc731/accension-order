@@ -1,36 +1,22 @@
 # Ascension Convention 2026 – Shirt Order Form
 
-Astro 5 SSR order form for Ascension Convention 2026 shirts. Features Stripe checkout, PostgreSQL (Drizzle), Resend emails, admin order management, and a design picker with zoomable shirt images.
+Static Astro 5 order form for Ascension Convention 2026 shirts. Uses Netlify Forms for submission capture, with a design picker and zoomable shirt images.
 
 ## Stack
 
-- **Astro 5** (SSR) with Netlify adapter (Cloudflare Pages and Node adapters available)
-- **Stripe** – Payments and webhooks
-- **Drizzle ORM** – PostgreSQL schema and migrations
-- **Resend** – Order confirmation emails
+- **Astro 5** (static)
+- **Netlify Forms** – Form detection and submissions
 - **pnpm** – Package manager
 
 ## Prerequisites
 
 - Node.js 20+
 - pnpm (`npm install -g pnpm` or `corepack enable && corepack prepare pnpm@latest --activate`)
-- PostgreSQL (local, [Supabase](https://supabase.com), [Neon](https://neon.tech), etc.)
-- Stripe and Resend accounts
 
 ## Quick Start
 
 ```bash
-# Install dependencies (uses pnpm)
 pnpm install
-
-# Copy env template
-cp .env.example .env
-# Edit .env with your keys
-
-# Run database migrations
-pnpm db:migrate
-
-# Start dev server
 pnpm dev
 ```
 
@@ -43,36 +29,18 @@ Open [http://localhost:4321](http://localhost:4321).
 | `pnpm dev` | Start dev server |
 | `pnpm build` | Production build |
 | `pnpm preview` | Preview production build locally |
-| `pnpm db:generate` | Generate Drizzle migrations |
-| `pnpm db:migrate` | Run migrations |
-| `pnpm db:studio` | Open Drizzle Studio for DB inspection |
 
-## Environment Variables
+## Netlify Forms
 
-See `.env.example` for all required variables:
-
-| Variable | Purpose |
-|----------|---------|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `STRIPE_SECRET_KEY` | Stripe secret key |
-| `STRIPE_PUBLISHABLE_KEY` | Stripe publishable key |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
-| `RESEND_API_KEY` | Resend API key |
-| `ADMIN_PASSWORD` | Password for `/admin` |
-| `SITE_URL` | Base URL for redirects and emails |
-| `ADMIN_EMAIL` | Optional notification email |
-
-## Deployment
-
-- **Netlify**: Default adapter. Deploy via Netlify CLI or Git.
-- **Cloudflare Pages**: Use `astro.config.cloudflare.mjs` and deploy with Wrangler.
-- **Node/VPS**: Use `astro.config.node.mjs` for Node.js server deployment.
-
-Configure environment variables in your platform’s dashboard.
+1. Enable **Form detection** in Netlify: Forms → Form detection → Enable
+2. Deploy the site. Netlify will scan the build output and register the `shirt-order` form
+3. Submissions appear in Netlify UI: Forms → shirt-order
+4. On submit, users are redirected to `/success/`
+5. Optionally set up email notifications or form-triggered functions
 
 ## Order Form & Designs
 
-The order form (`/`) lets customers choose from six shirt designs:
+The form (`/`) lets customers choose from six shirt designs:
 
 | Design | Name |
 |--------|------|
@@ -83,34 +51,31 @@ The order form (`/`) lets customers choose from six shirt designs:
 | 5 | Black weathered with pink lettering |
 | 6 | Black weathered with gold lettering |
 
-- **Design images** live in `src/images/` (shirt-1.jpg through shirt-6.png) and are imported at build time.
-- **Image zoom modal**: Click any design thumbnail to view it larger. Closable via X button, Escape key, or clicking outside the image.
-- **Thumbnails** use a 4:3 aspect ratio with `object-fit: contain` so composite front/back views display fully.
-- Design metadata (names, pricing) is in `src/data/designs.json`.
+### Pricing
 
-## MCP Servers (Cursor)
+- **White & black shirts** (designs 1–4): **$20** base
+- **Weathered shirts** (designs 5–6): **$30** base
+- **2XL and 3XL** add **$2.00** (3XL not available for weathered designs)
 
-This project is set up to use these MCP servers for development:
+### Sizes
 
-- **org-controller** – Org workflows, planning, policies
-- **Astro Docs** – Search official Astro docs (`search_astro_docs`)
+- Sizes: XS, S, M, L, XL, 2XL, 3XL
+- **3XL is hidden** when a weathered design (5 or 6) is selected; only designs 1–4 offer 3XL
 
-Ensure these are enabled in Cursor settings (global `mcp.json` or project `.cursor/mcp.json`).
+- **Design images** live in `src/images/` (shirt-1.jpg through shirt-6.png)
+- **Image zoom modal**: Click any design thumbnail to view larger
+- Design metadata is in `src/data/designs.json`
 
 ## Project Structure
 
 ```
 src/
-├── pages/           # Astro pages
-│   ├── index.astro  # Order form (design picker, zoom modal, checkout)
-│   ├── success.astro
-│   ├── admin.astro
-│   └── api/         # API routes (checkout, webhooks, admin)
-├── layouts/         # BaseLayout.astro
-├── lib/             # Stripe, email, DB, pricing
-├── data/            # designs.json (design names, pricing)
-├── images/          # Shirt design images (shirt-1.jpg … shirt-6.png)
-└── styles/          # Global styles
+├── pages/
+│   ├── index.astro   # Order form (Netlify form)
+│   └── success.astro # Thank-you page
+├── layouts/
+├── data/
+└── images/
 ```
 
 ## License
