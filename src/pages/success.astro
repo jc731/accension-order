@@ -1,5 +1,12 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import * as site from '../data/site.json';
+
+const { venmoUsername } = site;
+const venmoHandle = venmoUsername.replace(/^@/, '');
+const showVenmo = venmoHandle.length > 0 && venmoHandle !== 'REPLACE_WITH_YOUR_VENMO_USERNAME';
+const venmoNote = 'Ascension 2026 shirt order';
+const venmoBaseHref = `https://venmo.com/${encodeURIComponent(venmoHandle)}?txn=pay&note=${encodeURIComponent(venmoNote)}`;
 ---
 <BaseLayout title="Order Submitted" description="Your Ascension Convention 2026 shirt order has been submitted.">
   <main class="page">
@@ -7,10 +14,55 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <div class="icon" aria-hidden="true">✓</div>
       <h1>Order Submitted!</h1>
       <p>Thank you for your order. We'll be in touch with next steps.</p>
-      <a href="/" class="btn">Place Another Order</a>
+
+      {showVenmo && (
+        <div id="venmo-pay" class="venmo-block" data-venmo={venmoHandle}>
+          <p class="venmo-lead">
+            Want to pay now? Send Venmo to <strong class="venmo-handle">@{venmoHandle}</strong><span id="venmo-amount-line" hidden></span>.
+          </p>
+          <a id="venmo-link" href={venmoBaseHref} class="btn btn-venmo" target="_blank" rel="noopener noreferrer">
+            <span class="venmo-btn-label">Open Venmo</span>
+          </a>
+          <p class="venmo-fine-print">Opens the Venmo app or website with payee and amount filled in when available.</p>
+        </div>
+      )}
+
+      <a href="/" class="btn btn-secondary">Place Another Order</a>
     </div>
   </main>
 </BaseLayout>
+
+{showVenmo && (
+  <script>
+    (function () {
+      const root = document.getElementById('venmo-pay');
+      const link = document.getElementById('venmo-link') as HTMLAnchorElement | null;
+      const amountLine = document.getElementById('venmo-amount-line');
+      if (!root || !link) return;
+
+      const venmo = root.dataset.venmo;
+      if (!venmo) return;
+
+      const params = new URLSearchParams(window.location.search);
+      const amountRaw = params.get('amount');
+      const amount = amountRaw && /^[0-9]+(\.[0-9]{1,2})?$/.test(amountRaw.trim()) ? amountRaw.trim() : null;
+
+      const base = `https://venmo.com/${encodeURIComponent(venmo)}`;
+      const qs = new URLSearchParams({
+        txn: 'pay',
+        note: 'Ascension 2026 shirt order',
+      });
+      if (amount) qs.set('amount', amount);
+
+      link.href = `${base}?${qs.toString()}`;
+
+      if (amountLine && amount) {
+        amountLine.textContent = ` for $${amount}`;
+        amountLine.hidden = false;
+      }
+    })();
+  </script>
+)}
 
 <style>
   .page {
@@ -29,6 +81,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     border-radius: var(--radius);
     padding: 2.5rem;
     box-shadow: var(--shadow);
+    color: var(--color-text);
   }
 
   .icon {
@@ -48,23 +101,69 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     font-size: 1.5rem;
   }
 
-  .card p {
+  .card > p:first-of-type {
     color: var(--color-text-muted);
     margin: 0 0 1rem;
+  }
+
+  .venmo-block {
+    margin: 1.25rem 0;
+    padding: 1rem;
+    background: var(--color-bg);
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+  }
+
+  .venmo-lead {
+    color: var(--color-text);
+    margin: 0 0 1rem;
+    font-size: 1rem;
+    line-height: 1.45;
+  }
+
+  .venmo-handle {
+    color: var(--color-text);
+  }
+
+  .venmo-fine-print {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin: 0.75rem 0 0;
+    line-height: 1.4;
   }
 
   .btn {
     display: inline-block;
     margin-top: 0.5rem;
     padding: 0.75rem 1.5rem;
-    background: var(--color-accent);
-    color: white;
     border-radius: 8px;
     font-weight: 600;
     text-decoration: none;
   }
-  .btn:hover {
+
+  .btn-primary,
+  .btn-venmo {
+    background: var(--color-accent);
+    color: white;
+  }
+  .btn-venmo:hover {
     background: var(--color-accent-hover);
     text-decoration: none;
+    color: white;
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--color-accent);
+    border: 1px solid var(--color-border);
+    margin-top: 0.75rem;
+  }
+  .btn-secondary:hover {
+    background: var(--color-bg);
+    text-decoration: none;
+  }
+
+  .venmo-block + .btn-secondary {
+    margin-top: 0;
   }
 </style>

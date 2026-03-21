@@ -707,7 +707,10 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'] as const;
       });
 
       if (response.ok) {
-        window.location.href = '/success/';
+        const size = (form.size as HTMLInputElement).value;
+        const total = getPrice(designId, size);
+        const params = new URLSearchParams({ amount: total.toFixed(2) });
+        window.location.href = `/success/?${params.toString()}`;
       } else {
         throw new Error(`Submit failed: ${response.status}`);
       }
