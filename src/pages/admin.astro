@@ -1,0 +1,445 @@
+---
+export const prerender = false;
+
+import { createHash } from 'node:crypto';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const PASSWORD = import.meta.env.form_password ?? '';
+const API_TOKEN = import.meta.env.NETLIFY_API_TOKEN ?? '';
+const SITE_ID = import.meta.env.NETLIFY_SITE_ID ?? '';
+
+function sessionHash(pw: string) {
+  return createHash('sha256').update(pw + ':accension-admin-2026').digest('hex');
+}
+
+function parseCookies(header: string | null): Record<string, string> {
+  if (!header) return {};
+  return Object.fromEntries(
+    header.split(';').map((c) => {
+      const [k, ...v] = c.trim().split('=');
+      return [k, v.join('=')];
+    })
+  );
+}
+
+const cookies = parseCookies(Astro.request.headers.get('cookie'));
+let isAuthenticated = cookies['admin_session'] === sessionHash(PASSWORD);
+let passwordError = false;
+
+// Handle login POST
+if (Astro.request.method === 'POST') {
+  const data = await Astro.request.formData();
+  const action = data.get('action');
+
+  if (action === 'logout') {
+    Astro.response.headers.set(
+      'Set-Cookie',
+      'admin_session=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0'
+    );
+    return Astro.redirect('/admin');
+  }
+
+  const entered = (data.get('password') as string) ?? '';
+  if (entered === PASSWORD) {
+    Astro.response.headers.set(
+      'Set-Cookie',
+      `admin_session=${sessionHash(PASSWORD)}; HttpOnly; Path=/; SameSite=Strict; Max-Age=86400`
+    );
+    return Astro.redirect('/admin');
+  }
+  passwordError = true;
+}
+
+// Fetch submissions once authenticated
+type Submission = {
+  id: string;
+  created_at: string;
+  data: {
+    fullName?: string;
+    orderingAs?: string;
+    email?: string;
+    phone?: string;
+    design?: string;
+    designId?: string;
+    size?: string;
+    [key: string]: string | undefined;
+  };
+};
+
+let submissions: Submission[] = [];
+let fetchError = '';
+const apiReady = Boolean(API_TOKEN && SITE_ID);
+
+const DESIGN_LABELS: Record<string, string> = {
+  'design-1': 'White / Pink',
+  'design-2': 'White / Gold',
+  'design-3': 'Black / Pink',
+  'design-4': 'Black / Gold',
+  'design-5': 'Black Weathered / Pink',
+  'design-6': 'Black Weathered / Gold',
+  'white-pink-lettering': 'White / Pink',
+  'white-gold-lettering': 'White / Gold',
+  'black-pink-lettering': 'Black / Pink',
+  'black-gold-lettering': 'Black / Gold',
+  'black-weathered-pink-lettering': 'Black Weathered / Pink',
+  'black-weathered-gold-lettering': 'Black Weathered / Gold',
+};
+
+if (isAuthenticated && apiReady) {
+  try {
+    const formsRes = await fetch(
+      `https://api.netlify.com/api/v1/sites/${SITE_ID}/forms`,
+      { headers: { Authorization: `Bearer ${API_TOKEN}` } }
+    );
+    if (!formsRes.ok) throw new Error(`Netlify API ${formsRes.status}`);
+    const forms: Array<{ id: string; name: string }> = await formsRes.json();
+    const shirtForm = forms.find((f) => f.name === 'shirt-order');
+
+    if (shirtForm) {
+      const subsRes = await fetch(
+        `https://api.netlify.com/api/v1/forms/${shirtForm.id}/submissions?per_page=100`,
+        { headers: { Authorization: `Bearer ${API_TOKEN}` } }
+      );
+      if (!subsRes.ok) throw new Error(`Submissions API ${subsRes.status}`);
+      submissions = await subsRes.json();
+    } else {
+      fetchError = 'Form "shirt-order" not found. Has anyone submitted yet?';
+    }
+  } catch (e) {
+    fetchError = `Could not reach Netlify API: ${(e as Error).message}`;
+  }
+}
+
+// Summary stats
+const designCounts: Record<string, number> = {};
+const sizeCounts: Record<string, number> = {};
+for (const sub of submissions) {
+  const d = DESIGN_LABELS[sub.data.designId ?? sub.data.design ?? ''] ?? sub.data.design ?? '—';
+  const s = sub.data.size ?? '—';
+  designCounts[d] = (designCounts[d] ?? 0) + 1;
+  sizeCounts[s] = (sizeCounts[s] ?? 0) + 1;
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit',
+  });
+}
+---
+
+<BaseLayout title="Admin — Order Submissions" description="Password-protected order submissions viewer">
+  <div class="admin-wrap">
+    {!isAuthenticated ? (
+      <!-- LOGIN FORM -->
+      <div class="login-card">
+        <h1>Admin Access</h1>
+        <p class="muted">Enter the admin password to view order submissions.</p>
+        {passwordError && <p class="error-msg">Incorrect password. Try again.</p>}
+        <form method="POST">
+          <label for="password">Password</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            autofocus
+            required
+          />
+          <button type="submit">Sign In</button>
+        </form>
+      </div>
+    ) : (
+      <!-- ADMIN DASHBOARD -->
+      <div class="dashboard">
+        <header class="dash-header">
+          <div>
+            <h1>Order Submissions</h1>
+            <p class="muted">Ascension Convention 2026 · shirt-order form</p>
+          </div>
+          <form method="POST">
+            <input type="hidden" name="action" value="logout" />
+            <button type="submit" class="btn-logout">Sign Out</button>
+          </form>
+        </header>
+
+        {!apiReady && (
+          <div class="notice warning">
+            <strong>API credentials not configured.</strong>
+            <p>
+              Add <code>NETLIFY_API_TOKEN</code> and <code>NETLIFY_SITE_ID</code> to your
+              <code>.env</code> file to load submissions. See <code>.env.example</code> for details.
+            </p>
+          </div>
+        )}
+
+        {fetchError && (
+          <div class="notice error">
+            <strong>Error:</strong> {fetchError}
+          </div>
+        )}
+
+        {apiReady && !fetchError && (
+          <>
+            <!-- Summary cards -->
+            <div class="summary-row">
+              <div class="stat-card">
+                <span class="stat-num">{submissions.length}</span>
+                <span class="stat-label">Total Orders</span>
+              </div>
+              {Object.entries(designCounts).sort((a,b) => b[1]-a[1]).map(([design, count]) => (
+                <div class="stat-card">
+                  <span class="stat-num">{count}</span>
+                  <span class="stat-label">{design}</span>
+                </div>
+              ))}
+            </div>
+
+            <!-- Size breakdown -->
+            {submissions.length > 0 && (
+              <div class="size-summary">
+                <h2>Sizes</h2>
+                <div class="size-chips">
+                  {['XS','S','M','L','XL','2XL','3XL'].map(size => (
+                    sizeCounts[size] ? (
+                      <span class="size-chip">
+                        {size} <strong>{sizeCounts[size]}</strong>
+                      </span>
+                    ) : null
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <!-- Submissions table -->
+            {submissions.length === 0 ? (
+              <div class="notice info">No submissions yet.</div>
+            ) : (
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Name</th>
+                      <th>Role</th>
+                      <th>Email</th>
+                      <th>Phone</th>
+                      <th>Design</th>
+                      <th>Size</th>
+                      <th>Submitted</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {submissions.map((sub, i) => (
+                      <tr>
+                        <td class="muted">{submissions.length - i}</td>
+                        <td><strong>{sub.data.fullName ?? '—'}</strong></td>
+                        <td><span class={`role-badge role-${(sub.data.orderingAs ?? '').toLowerCase()}`}>{sub.data.orderingAs ?? '—'}</span></td>
+                        <td><a href={`mailto:${sub.data.email}`}>{sub.data.email ?? '—'}</a></td>
+                        <td>{sub.data.phone ?? '—'}</td>
+                        <td>{DESIGN_LABELS[sub.data.designId ?? sub.data.design ?? ''] ?? sub.data.design ?? '—'}</td>
+                        <td><span class="size-badge">{sub.data.size ?? '—'}</span></td>
+                        <td class="muted date">{formatDate(sub.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    )}
+  </div>
+</BaseLayout>
+
+<style>
+  .admin-wrap {
+    min-height: 100vh;
+    padding: 2rem 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  /* ── Login ── */
+  .login-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 2.5rem 2rem;
+    width: 100%;
+    max-width: 400px;
+    margin-top: 6rem;
+    box-shadow: var(--shadow);
+  }
+  .login-card h1 { margin: 0 0 0.25rem; font-size: 1.6rem; }
+  .login-card form { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem; }
+  .login-card label { font-size: 0.85rem; font-weight: 600; color: var(--color-text-muted); }
+  .login-card input[type="password"] {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 0.65rem 0.9rem;
+    color: var(--color-text);
+    width: 100%;
+  }
+  .login-card input[type="password"]:focus {
+    outline: 2px solid var(--color-accent);
+    border-color: transparent;
+  }
+  .login-card button[type="submit"] {
+    background: var(--color-accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 0.25rem;
+  }
+  .login-card button[type="submit"]:hover { background: var(--color-accent-hover); }
+  .error-msg {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.3);
+    color: var(--color-error);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    margin: 0;
+  }
+
+  /* ── Dashboard ── */
+  .dashboard {
+    width: 100%;
+    max-width: 1100px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding-top: 1rem;
+  }
+  .dash-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .dash-header h1 { margin: 0 0 0.15rem; font-size: 1.8rem; }
+  .btn-logout {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    border-radius: 8px;
+    padding: 0.45rem 1rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .btn-logout:hover { border-color: var(--color-error); color: var(--color-error); }
+
+  /* ── Notices ── */
+  .notice {
+    border-radius: var(--radius);
+    padding: 0.9rem 1.1rem;
+    font-size: 0.9rem;
+  }
+  .notice p { margin: 0.25rem 0 0; }
+  .notice code {
+    background: rgba(255,255,255,0.08);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 0.85em;
+  }
+  .notice.warning { background: rgba(234,179,8,0.1); border: 1px solid rgba(234,179,8,0.25); }
+  .notice.error   { background: rgba(239,68,68,0.1);  border: 1px solid rgba(239,68,68,0.25); color: var(--color-error); }
+  .notice.info    { background: rgba(124,92,255,0.08); border: 1px solid var(--color-border); color: var(--color-text-muted); }
+
+  /* ── Summary cards ── */
+  .summary-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .stat-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    min-width: 110px;
+  }
+  .stat-num  { font-size: 1.8rem; font-weight: 700; font-family: var(--font-display); line-height: 1; }
+  .stat-label { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.3rem; }
+
+  /* ── Size summary ── */
+  .size-summary h2 { margin: 0 0 0.75rem; font-size: 1rem; font-weight: 600; }
+  .size-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .size-chip {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.85rem;
+  }
+  .size-chip strong { color: var(--color-accent); margin-left: 0.3rem; }
+
+  /* ── Table ── */
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  thead { background: var(--color-surface); }
+  th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+  }
+  td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--color-surface-hover); }
+
+  .role-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+  }
+  .role-youth  { background: rgba(34,197,94,0.15);  color: #4ade80; }
+  .role-leader { background: rgba(124,92,255,0.15); color: #a78bfa; }
+  .role-parent { background: rgba(251,191,36,0.15); color: #fbbf24; }
+
+  .size-badge {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .muted { color: var(--color-text-muted); }
+  .date  { font-size: 0.8rem; white-space: nowrap; }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .dash-header { flex-direction: column; }
+    td, th { padding: 0.6rem 0.75rem; }
+  }
+</style>

@@ -10,6 +10,7 @@
     "preview": "astro preview"
   },
   "dependencies": {
+    "@astrojs/netlify": "^6.6.5",
     "astro": "^5.0.0"
   },
   "devDependencies": {
